@@ -1,6 +1,8 @@
 //params
 var server = "";
-var maxKeyFrameStep = 10; //Seconds
+var maxKeyFrameStep = 2; //Seconds
+
+//DEPRICATED
 var minFrameStep = 0.5 //Seconds
 
 //global
@@ -16,14 +18,30 @@ var currentFrame = 0;
 var timestamp = 0;
 var now = 0;
 var scrollBarWidth = 0;
+var frames = [];
+
+var mb = 1024 * 1024;
 
 function startRecording(params){
 	//SET A NEW SESSION OR RESTORE AN OLD ONE
 	if(getCookie('record_session') == ""){
 		session = getRandomInt(100000,999999);
 		setCookie('record_session', session, 1);
+		localStorage.clear();
 	}else{
 		session = getCookie('record_session');
+		var temp = localStorage.getItem('recording');
+		
+		if(temp !== null){
+			temp = JSON.parse(temp);
+			if(temp[0].session != session){
+				localStorage.clear();
+				console.log('localStorage error');
+			}else{
+				frames = temp;
+				//localStorage.clear();
+			}
+		}
 	}
 
 	//Params
@@ -32,6 +50,7 @@ function startRecording(params){
 	minFrameStep = params.minFrameStep || 0.5; //Seconds
 
 	viewport = getViewport();
+
 	//Start recording
 	recording = true;
 }
@@ -46,7 +65,11 @@ function recordFrame(key){
 	timestamp = Math.round(now / 1000); 
 	clearTimeout(timeout);
 
-	if(recording && (now - lastFrameTimestampMs) / 1000 > minFrameStep){
+	if(
+		recording 
+		//&& (now - lastFrameTimestampMs) / 1000 > minFrameStep
+		){
+		
 		//Send a KeyFrame
 		if( ((now - lastScreenTimestampMs) / 1000 > maxKeyFrameStep) || key !== undefined){
 			html2canvas(document.body, {
@@ -70,31 +93,40 @@ function recordFrame(key){
 }
 
 function sendFrame(screen){
-	var formData = new FormData();
+	var frame = {};
 
 	if(screen !== undefined){
-		formData.append('screen', screen);
-		console.log('send key frame')
+		frame.screen = screen;
+		console.log('make key frame')
 	}else{
-		console.log('send frame');
+		console.log('make frame');
 	}
 
-	formData.append('location', document.location);
-	formData.append('session', session);
-	formData.append('timestamp', timestamp);
-	formData.append('now', now);
-	formData.append('mouseX', mouse.x);
-	formData.append('mouseY', mouse.y);
-	formData.append('scrollX', winScroll.left);
-	formData.append('scrollY', winScroll.top);
-	formData.append('viewportW', viewport.width);
-	formData.append('viewportH', viewport.height);
+	frame.location 	= document.location.href;
+	frame.session 	= session;
+	frame.timestamp = timestamp;
+	frame.now		= now;
+	frame.mouseX	= mouse.x;
+	frame.mouseY	= mouse.y;
+	frame.scrollX	= winScroll.left;
+	frame.scrollY 	= winScroll.top;
+	frame.viewportW = viewport.width;
+	frame.viewportH = viewport.height;
 
-	//Send data to server
-	var request = new XMLHttpRequest();
-	request.open("POST", server);
-	request.send(formData);
-	lastFrameTimestampMs = now;
+	frames.push(frame);
+	localStorage.setItem('recording', JSON.stringify(frames));
+
+	if( frames.length > 20 || sizeof(frames) > mb ){
+		console.log('send frames');
+		//Send data to server
+		var request = new XMLHttpRequest();
+		request.open("POST", server);
+		request.send(JSON.stringify(frames));
+		lastFrameTimestampMs = now;
+		
+		frames = [];
+		localStorage.clear();
+	}
 }
 
 
@@ -107,12 +139,61 @@ function getViewport(){
 	var w = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
 	var h = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
 
-	var hasVScroll = document.body.scrollHeight > document.body.clientHeight;
-	var hasHScroll = document.body.scrollWidth > document.body.clientHeight;
+	// BUG HERE
+	// var hasVScroll = document.body.scrollHeight > document.body.clientHeight;
+	// var hasHScroll = document.body.scrollWidth > document.body.clientHeight;
 
 	//TODO remove scroll width
 
 	return {width:w, height:h};
+}
+
+// http://code.stephenmorley.org/
+function sizeof(object) {
+    // initialise the list of objects and size
+    var objects = [object];
+    var size = 0;
+    // loop over the objects
+    for (var index = 0; index < objects.length; index++) {
+        // determine the type of the object
+        switch (typeof objects[index]) {
+            // the object is a boolean
+            case 'boolean':
+                size += 4;
+                break;
+                // the object is a number
+            case 'number':
+                size += 8;
+                break;
+                // the object is a string
+            case 'string':
+                size += 2 * objects[index].length;
+                break;
+                // the object is a generic object
+            case 'object':
+                // if the object is not an array, add the sizes of the keys
+                if (Object.prototype.toString.call(objects[index]) != '[object Array]') {
+                    for (var key in objects[index]) size += 2 * key.length;
+                }
+                // loop over the keys
+                for (var key in objects[index]) {
+                    // determine whether the value has already been processed
+                    var processed = false;
+                    for (var search = 0; search < objects.length; search++) {
+                        if (objects[search] === objects[index][key]) {
+                            processed = true;
+                            break;
+                        }
+                    }
+                    // queue the value to be processed if appropriate
+                    if (!processed) objects.push(objects[index][key]);
+                }
+
+        }
+    }
+
+    // return the calculated size
+    return size;
 }
 
 function getScroll(){
@@ -148,11 +229,11 @@ function getScrollbarWidth(){
 }
 
 //Cookie functions
-function setCookie(cname, cvalue, exdays) {
+function setCookie(name, value, hours) {
     var d = new Date();
-    d.setTime(d.getTime() + (exdays*24*60*60*1000));
+    d.setTime(d.getTime() + (hours*60*60*1000));
     var expires = "expires="+d.toGMTString();
-    document.cookie = cname + "=" + cvalue + "; " + expires + "; path=/; secure";
+    document.cookie = name + "=" + value + "; " + expires + "; path=/";
 }
 
 function getCookie(cname) {
@@ -213,7 +294,4 @@ window.addEventListener('keyup', keyHandler, false);
 window.addEventListener('resize', resizeHandler, false);
 window.addEventListener('scroll', scrollHandler, false);
 
-
-
-//TODO
-//mobile events
+//TODO: mobile events

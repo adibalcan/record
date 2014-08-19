@@ -3,37 +3,46 @@ header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST');
 $dataDir = 'record';
 
-if(isset($_POST['session'])){
-	if(isset($_POST['screen'])){
-		$imageData = $_POST['screen'];
-		$name = $_POST['session'] . '_' . $_POST['timestamp'];
 
-		$filteredData = substr($imageData, strpos($imageData, ",") + 1);
-		$unencodedData = base64_decode($filteredData);    
-
-		$imageFile = $dataDir . DIRECTORY_SEPARATOR . $name . '.png';
-
-		file_put_contents($imageFile, $unencodedData);
-	}
-
-	$dataFile = $dataDir . DIRECTORY_SEPARATOR . 'session_' . $_POST['session'] . '.json';
-
+if($_SERVER['REQUEST_METHOD'] == 'POST'){
+	$request_body = file_get_contents('php://input');
+	$jsonData = json_decode($request_body);
+	$dataFile = $dataDir . DIRECTORY_SEPARATOR . 'session_' . $jsonData[0]->session . '.json';
+	
 	//Open
 	if(file_exists($dataFile)){
-		$data = json_decode(file_get_contents($dataFile), true);
+		$data = json_decode(file_get_contents($dataFile));
+		if(!is_array($data)){
+			$data = array($data);
+		}
 	}else{
 		$data = array();
 	}
 
-	if(isset($_POST['screen'])){
-		$_POST['screen'] = $imageFile;
-	}
+	//Parse frames
+	foreach ($jsonData as $key => $frame) {
+		//If is keyFrame
+		if(isset($frame->screen)){
+			$imageData = $frame->screen;
+			$name = $frame->session . '_' . $frame->now;
 
-	$data[] = $_POST;
+			$filteredData = substr($imageData, strpos($imageData, ",") + 1);
+			$unencodedData = base64_decode($filteredData);    
+
+			$imageFile = $dataDir . DIRECTORY_SEPARATOR . $name . '.png';
+			$frame->screen = $imageFile;
+
+			file_put_contents($imageFile, $unencodedData);
+		}
+
+		$data[] = $frame;
+	}
 
 	//Save
 	file_put_contents($dataFile, json_encode($data));
+	
 }else{
+
 	if(isset($_GET['play'])){
 		$play = file_get_contents($dataDir . DIRECTORY_SEPARATOR . $_GET['play']);
 		include('player.php');
@@ -48,9 +57,5 @@ if(isset($_POST['session'])){
 			}
 		}
 	}
+
 }
-
-
-
-
-
