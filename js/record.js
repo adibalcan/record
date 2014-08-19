@@ -120,6 +120,17 @@ function sendFrame(screen){
 		console.log('send frames');
 		//Send data to server
 		var request = new XMLHttpRequest();
+
+		if (window.XDomainRequest){
+	        var request = new XDomainRequest();	        
+	    }
+	    else if (window.XMLHttpRequest){
+	        var request = new XMLHttpRequest();
+	    }
+	    else{
+	        var request = new ActiveXObject("Microsoft.XMLHTTP");
+	    }
+
 		request.open("POST", server);
 		request.send(JSON.stringify(frames));
 		lastFrameTimestampMs = now;
