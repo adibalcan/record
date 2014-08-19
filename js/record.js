@@ -1,9 +1,11 @@
-var timeout = null;
-var server = "http://cip-cirip.ro/record.php";
+//params
+var server = "";
 var maxKeyFrameStep = 10; //Seconds
 var minFrameStep = 0.5 //Seconds
 
+//global
 var recording = false;
+var timeout = null;
 var mouse = {x: 0, y: 0};
 var viewport = {width:0, height:0};
 var winScroll = {top:0, left:0};
@@ -15,7 +17,7 @@ var timestamp = 0;
 var now = 0;
 var scrollBarWidth = 0;
 
-function startRecording(){
+function startRecording(params){
 	//SET A NEW SESSION OR RESTORE AN OLD ONE
 	if(getCookie('record_session') == ""){
 		session = getRandomInt(100000,999999);
@@ -23,6 +25,11 @@ function startRecording(){
 	}else{
 		session = getCookie('record_session');
 	}
+
+	//Params
+	server = params.server;
+	maxKeyFrameStep = params.maxKeyFrameStep || 10; //Seconds
+	minFrameStep = params.minFrameStep || 0.5; //Seconds
 
 	viewport = getViewport();
 	//Start recording
