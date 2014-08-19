@@ -119,8 +119,7 @@ function sendFrame(screen){
 	if( frames.length > 20 || sizeof(frames) > mb ){
 		console.log('send frames');
 		//Send data to server
-		var request = new XMLHttpRequest();
-
+		
 		if (window.XDomainRequest){
 	        var request = new XDomainRequest();	        
 	    }
