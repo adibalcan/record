@@ -60,8 +60,13 @@ function stopRecording(){
 	clearTimeout(timeout);
 }
 
-function recordFrame(key){
-	now = Date.now();
+function recordFrame(key, event){
+	//For old browsers
+	var d = new Date();
+	now = d.getTime()
+
+	//now = Date.now();
+	
 	timestamp = Math.round(now / 1000); 
 	clearTimeout(timeout);
 
