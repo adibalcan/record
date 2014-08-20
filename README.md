@@ -24,3 +24,7 @@ View recordings
 ======
 
 You can view recordings accessing http://your-server.com/record.php
+
+
+
+[![Analytics](https://ga-beacon.appspot.com/UA-54015514-1/recordjs/readme)](https://github.com/igrigorik/ga-beacon)
