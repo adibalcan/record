@@ -1,15 +1,26 @@
 record JS
 ======
 
-Tool for recording user behavior on website
+Tool for recording user behavior on your website
 
 Usage
 ======
+
+Install on webpage
 
     <script type="text/javascript" src="js/html2canvas.js"></script>
     <script type="text/javascript" src="js/record.js"></script>
     <script type="text/javascript">
          startRecording({
-                        server:"http://server.com/record.php"
+                        server:"http://your-server.com/record.php"
                       });
     </script>
+    
+Install recording server
+
+    Just put contents of server directory on your server
+    
+View recordings
+======
+
+You can view recordings accessing http://your-server.com/record.php
