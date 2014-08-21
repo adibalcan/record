@@ -2,14 +2,10 @@ var recordJS = {
 
 	//options
 	server: "",
-	maxKeyFrameStep: 2, //Seconds
-
-	//deprecated
-	minFrameStep: 0.5, //Seconds
 
     defaultOptions: {
-        maxKeyFrameStep: 10,
-        minFrameStep: 0.5
+        maxKeyFrameStep: 2, //Seconds
+        minFrameStep: 0.5 //Seconds, DEPRICATED
     },
 
 	//global
@@ -166,15 +162,19 @@ var recordJS = {
 
 	//Utils
 	getXHR: function() {
+		var request = null;
+		
 		if (window.XDomainRequest){
-			return request = new XDomainRequest();	        
+			request = new XDomainRequest();	        
 		}
 		else if (window.XMLHttpRequest){
-			return request = new XMLHttpRequest();
+			request = new XMLHttpRequest();
 		}
 		else{
-			return request = new ActiveXObject("Microsoft.XMLHTTP");
+			request = new ActiveXObject("Microsoft.XMLHTTP");
 		}
+
+		return request;
 	},
 
 	getRandomInt: function(min, max) {
