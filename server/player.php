@@ -59,7 +59,7 @@
 
 		<div id="location"></div>
 		<div id="view" style="position:relative;">
-			<img id="pointer" style="position:absolute;" src="pointer.png" />
+			<img id="pointer" style="position:absolute;" src="img/pointer.png" />
 		</div>
 
 	</body>

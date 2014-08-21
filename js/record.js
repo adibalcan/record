@@ -128,15 +128,7 @@ var recordJS = {
 			recordJS.log('sending frames to server');
 			//Send data to server
 			
-			if (window.XDomainRequest){
-		        var request = new XDomainRequest();	        
-		    }
-		    else if (window.XMLHttpRequest){
-		        var request = new XMLHttpRequest();
-		    }
-		    else{
-		        var request = new ActiveXObject("Microsoft.XMLHTTP");
-		    }
+			var request = recordJS.getXHR();
 
 			request.open("POST", recordJS.server);
 			request.send(JSON.stringify(recordJS.frames));
@@ -148,7 +140,43 @@ var recordJS = {
 		}
 	},
 
+	sendMetaInfo: function() {
+		var meta = {}
+		var request = recordJS.getXHR();
+		var data = "";
+		
+		//GET IP Location
+		request.onreadystatechange = function () {
+		if (request.readyState === 4) {
+			if (request.status == 200 && request.status < 300){
+				data = JSON.parse(xhr.responseText);
+			}
+		}
+
+		request.open('GET', 'http://ipinfo.io', false);
+		request.send();
+
+		meta.session 	= session;
+		meta.domain 	= document.domain;
+		meta.country 	= data.country;
+
+		request.open("POST", server);
+		request.send(JSON.stringify(meta));
+	},
+
 	//Utils
+	getXHR: function() {
+		if (window.XDomainRequest){
+			return request = new XDomainRequest();	        
+		}
+		else if (window.XMLHttpRequest){
+			return request = new XMLHttpRequest();
+		}
+		else{
+			return request = new ActiveXObject("Microsoft.XMLHTTP");
+		}
+	},
+
 	getRandomInt: function(min, max) {
 		return Math.floor((Math.random() * ((max + 1) - min)) + min);
 	},
