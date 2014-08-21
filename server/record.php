@@ -12,11 +12,22 @@ if($_SERVER['REQUEST_METHOD'] == 'POST'){
 	//Open
 	if(file_exists($dataFile)){
 		$data = json_decode(file_get_contents($dataFile));
-		if(!is_array($data)){
-			$data = array($data);
+
+		if(!isset($data->frames)){
+			$data->frames = array();
 		}
 	}else{
-		$data = array();
+		$data = new stdClass;
+		$data->frames = array();
+	}
+
+	if(isset($jsonData[0]->info) && $jsonData[0]->info == 'meta'){
+		if(!isset($data->meta)){
+			$data->meta 			= new stdClass;
+			$data->meta->domain 	= $jsonData[0]->domain;
+			$data->meta->country 	= strtolower($jsonData[0]->country);
+			$data->mete->timestamp  = time(); 
+		}
 	}
 
 	//Parse frames
@@ -35,7 +46,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST'){
 			file_put_contents($imageFile, $unencodedData);
 		}
 
-		$data[] = $frame;
+		$data->frames[] = $frame;
 	}
 
 	//Save
@@ -47,15 +58,15 @@ if($_SERVER['REQUEST_METHOD'] == 'POST'){
 		$play = file_get_contents($dataDir . DIRECTORY_SEPARATOR . $_GET['play']);
 		include('player.php');
 	}else{
-		$sessions = array();
-		$dh  = opendir($dataDir);
+		$files = array();
+		$d = opendir($dataDir);
 
-		while (false !== ($filename = readdir($dh))) {
+		while (false !== ($filename = readdir($d))) {
 			if(strpos($filename, 'session') !== False){
-				$sessions[] = $filename;
-				echo '<a href="?play='.$filename.'">'.$filename.'</a><br/>';
+				$files[] = $filename;
 			}
 		}
+		include('list.php');
 	}
 
 }

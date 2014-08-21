@@ -18,39 +18,39 @@
 			timeout = setTimeout(playStep, 1000);
 			
 			function playStep(){
-					var view 	= document.getElementById('view');
-					var loc 	= document.getElementById('location');
-					var pointer = document.getElementById('pointer');
+				var view 	= document.getElementById('view');
+				var loc 	= document.getElementById('location');
+				var pointer = document.getElementById('pointer');
 
-					if(data[currentStep] === undefined){
-						return;
+				if(data.frames[currentStep] === undefined){
+					return;
+				}
+
+				var step = data.frames[currentStep];
+				loc.innerHTML = step.location;
+
+				view.style.width 	= step.viewportW + 'px';
+				view.style.height 	= step.viewportH + 'px';
+				pointer.style.left 	= step.mouseX + 'px';
+				pointer.style.top 	= step.mouseY + 'px';
+
+				view.style.backgroundPositionX = (step.scrollX * -1) + 'px';
+				view.style.backgroundPositionY = (step.scrollY * -1) + 'px';
+
+				if(step.screen !== undefined){
+					view.style.background = 'url(' + step.screen + ')';
+				}
+
+				currentStep++;
+
+				if(data.frames[currentStep] !== undefined){
+					nextStep = data.frames[currentStep];
+					var interval = nextStep.now - step.now;
+					if(interval > maxSleep){
+						interval = maxSleep;
 					}
-
-					var step = data[currentStep];
-					loc.innerHTML = step.location;
-
-					view.style.width 	= step.viewportW + 'px';
-					view.style.height 	= step.viewportH + 'px';
-					pointer.style.left 	= step.mouseX + 'px';
-					pointer.style.top 	= step.mouseY + 'px';
-
-					view.style.backgroundPositionX = (step.scrollX * -1) + 'px';
-					view.style.backgroundPositionY = (step.scrollY * -1) + 'px';
-
-					if(step.screen !== undefined){
-						view.style.background = 'url(' + step.screen + ')';
-					}
-
-					currentStep++;
-
-					if(data[currentStep] !== undefined){
-						nextStep = data[currentStep];
-						var interval = nextStep.now - step.now;
-						if(interval > maxSleep){
-							interval = maxSleep;
-						}
-						timeout = setTimeout(playStep, interval);
-					}
+					timeout = setTimeout(playStep, interval);
+				}
 			}
 
 

@@ -22,6 +22,8 @@ var recordJS = {
 	now: 0,
 	scrollBarWidth: 0,
 	frames: [],
+	firstFrame: false,
+	newSession: false,
 
 	mb: 1024 * 1024,
 
@@ -31,6 +33,8 @@ var recordJS = {
 			recordJS.session = recordJS.getRandomInt(100000,999999);
 			recordJS.setCookie('record_session', recordJS.session, 1);
 			localStorage.clear();
+			
+			recordJS.sendMetaInfo();
 		} else {
 			recordJS.session = recordJS.getCookie('record_session');
 			var temp = localStorage.getItem('recording');
@@ -55,6 +59,7 @@ var recordJS = {
 		recordJS.viewport = recordJS.getViewport();
 
 		//Start recording
+		recordJS.firstFrame = true;
 		recordJS.recording = true;
         recordJS.log('recording started');
 	},
@@ -93,6 +98,10 @@ var recordJS = {
 			} else {
 				recordJS.sendFrame();
 			}	
+		}
+
+		if(recordJS.firstFrame){
+			recordJS.firstFrame = false;
 		}
 	},
 
@@ -136,7 +145,7 @@ var recordJS = {
 		}
 	},
 
-	sendMetaInfo: function() {
+	sendMetaInfo: function() {		
 		var meta = {}
 		var request = recordJS.getXHR();
 		var data = "";
@@ -145,20 +154,26 @@ var recordJS = {
 		request.onreadystatechange = function () {
 			if (request.readyState === 4) {
 				if (request.status == 200 && request.status < 300){
-					data = JSON.parse(xhr.responseText);
+					data = JSON.parse(request.responseText);
 				}
 			}
 		}
 
-		request.open('GET', 'http://ipinfo.io', false);
+		request.open('GET', 'http://ipinfo.io/json', false);
 		request.send();
 
-		meta.session 	= session;
+		meta.info 		= 'meta'; 
+		meta.session 	= recordJS.session;
 		meta.domain 	= document.domain;
 		meta.country 	= data.country;
 
-		request.open("POST", server);
-		request.send(JSON.stringify(meta));
+		//TODO handle on the server side
+		//Dirty hack
+		var wraper = [];
+		wraper.push(meta);
+
+		request.open("POST", recordJS.server);
+		request.send(JSON.stringify(wraper));
 	},
 
 	//Utils
