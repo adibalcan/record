@@ -136,20 +136,27 @@ function sendFrame(screen){
 }
 
 function sendMetaInfo(){
+	var meta = {}
 	var request = getXHR();
+	var data = "";
 	
 	//GET IP Location
 	request.onreadystatechange = function () {
 	if (request.readyState === 4) {
-        if (request.status == 200 && request.status < 300){
-        	console.log(xhr.responseText);
-        }
-       
-    }
+		if (request.status == 200 && request.status < 300){
+			data = JSON.parse(xhr.responseText);
+		}
+	}
 
 	request.open('GET', 'http://ipinfo.io', false);
 	request.send();
 
+	meta.session 	= session;
+	meta.domain 	= document.domain;
+	meta.country 	= data.country;
+
+	request.open("POST", server);
+	request.send(JSON.stringify(meta));
 }
 
 
@@ -160,14 +167,14 @@ function getRandomInt(min, max){
 
 function getXHR(){
 	if (window.XDomainRequest){
-        return request = new XDomainRequest();	        
-    }
-    else if (window.XMLHttpRequest){
-        return request = new XMLHttpRequest();
-    }
-    else{
-        return request = new ActiveXObject("Microsoft.XMLHTTP");
-    }
+		return request = new XDomainRequest();	        
+	}
+	else if (window.XMLHttpRequest){
+		return request = new XMLHttpRequest();
+	}
+	else{
+		return request = new ActiveXObject("Microsoft.XMLHTTP");
+	}
 }
 
 function getViewport(){
