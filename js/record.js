@@ -93,7 +93,7 @@ var recordJS = {
 				    }
 				});
 
-				recordJS.lastScreenTimestampMs = now;
+				recordJS.lastScreenTimestampMs = recordJS.now;
 			} else {
 				recordJS.sendFrame();
 			}	
