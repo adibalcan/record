@@ -123,17 +123,8 @@ function sendFrame(screen){
 
 	if( frames.length > 20 || sizeof(frames) > mb ){
 		console.log('send frames');
-		//Send data to server
-		
-		if (window.XDomainRequest){
-	        var request = new XDomainRequest();	        
-	    }
-	    else if (window.XMLHttpRequest){
-	        var request = new XMLHttpRequest();
-	    }
-	    else{
-	        var request = new ActiveXObject("Microsoft.XMLHTTP");
-	    }
+		//Send data to server		
+		var request = getXHR();
 
 		request.open("POST", server);
 		request.send(JSON.stringify(frames));
@@ -144,10 +135,39 @@ function sendFrame(screen){
 	}
 }
 
+function sendMetaInfo(){
+	var request = getXHR();
+	
+	//GET IP Location
+	request.onreadystatechange = function () {
+	if (request.readyState === 4) {
+        if (request.status == 200 && request.status < 300){
+        	console.log(xhr.responseText);
+        }
+       
+    }
+
+	request.open('GET', 'http://ipinfo.io', false);
+	request.send();
+
+}
+
 
 //Utils
 function getRandomInt(min, max){
 	return Math.floor((Math.random() * ((max + 1) - min)) + min);
+}
+
+function getXHR(){
+	if (window.XDomainRequest){
+        return request = new XDomainRequest();	        
+    }
+    else if (window.XMLHttpRequest){
+        return request = new XMLHttpRequest();
+    }
+    else{
+        return request = new ActiveXObject("Microsoft.XMLHTTP");
+    }
 }
 
 function getViewport(){
