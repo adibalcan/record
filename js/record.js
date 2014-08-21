@@ -1,339 +1,322 @@
-//params
-var server = "";
-var maxKeyFrameStep = 2; //Seconds
+var recordJS = {
 
-//DEPRICATED
-var minFrameStep = 0.5 //Seconds
+	//options
+	server: "",
+	maxKeyFrameStep: 2, //Seconds
 
-//global
-var recording = false;
-var timeout = null;
-var mouse = {x: 0, y: 0};
-var viewport = {width:0, height:0};
-var winScroll = {top:0, left:0};
-var session = 0;
-var lastScreenTimestampMs = 0;
-var lastFrameTimestampMs = 0;
-var currentFrame = 0;
-var timestamp = 0;
-var now = 0;
-var scrollBarWidth = 0;
-var frames = [];
+	//deprecated
+	minFrameStep: 0.5, //Seconds
 
-var mb = 1024 * 1024;
+    defaultOptions: {
+        maxKeyFrameStep: 10,
+        minFrameStep: 0.5
+    },
 
-function startRecording(params){
-	//SET A NEW SESSION OR RESTORE AN OLD ONE
-	if(getCookie('record_session') == ""){
-		session = getRandomInt(100000,999999);
-		setCookie('record_session', session, 1);
-		localStorage.clear();
-	}else{
-		session = getCookie('record_session');
-		var temp = localStorage.getItem('recording');
-		
-		if(temp !== null){
-			temp = JSON.parse(temp);
-			if(temp[0].session != session){
-				localStorage.clear();
-				console.log('localStorage error');
-			}else{
-				frames = temp;
-				//localStorage.clear();
+	//global
+	recording: false,
+	timeout: null,
+	mouse: {x: 0, y: 0},
+	viewport: {width: 0, height: 0},
+	winScroll: {top: 0, left: 0},
+	session: 0,
+	lastScreenTimestampMs: 0,
+	lastFrameTimestampMs: 0,
+	currentFrame: 0,
+	timestamp: 0,
+	now: 0,
+	scrollBarWidth: 0,
+	frames: [],
+
+	mb: 1024 * 1024,
+
+	startRecording: function(options) {
+		//SET A NEW SESSION OR RESTORE AN OLD ONE
+		if(recordJS.getCookie('record_session') === "") {
+			recordJS.session = recordJS.getRandomInt(100000,999999);
+			recordJS.setCookie('record_session', recordJS.session, 1);
+			localStorage.clear();
+		} else {
+			recordJS.session = recordJS.getCookie('record_session');
+			var temp = localStorage.getItem('recording');
+			
+			if(temp !== null) {
+				temp = JSON.parse(temp);
+				if(temp[0].session != recordJS.session) {
+					localStorage.clear();
+					recordJS.log('localStorage error');
+				} else {
+					recordJS.frames = temp;
+					//localStorage.clear();
+				}
 			}
 		}
-	}
 
-	//Params
-	server = params.server;
-	maxKeyFrameStep = params.maxKeyFrameStep || 10; //Seconds
-	minFrameStep = params.minFrameStep || 0.5; //Seconds
+		//options
+		recordJS.server = options.server;
+		recordJS.maxKeyFrameStep = options.maxKeyFrameStep || recordJS.defaultOptions.maxKeyFrameStep; //Seconds
+		recordJS.minFrameStep = options.minFrameStep || recordJS.defaultOptions.minFrameStep; //Seconds
 
-	viewport = getViewport();
+		recordJS.viewport = recordJS.getViewport();
 
-	//Start recording
-	recording = true;
-}
+		//Start recording
+		recordJS.recording = true;
+        recordJS.log('recording started');
+	},
 
-function stopRecording(){
-	recording = false;
-	clearTimeout(timeout);
-}
+	stopRecording: function() {
+		recordJS.recording = false;
+		clearTimeout(recordJS.timeout);
+        recordJS.log('recording stopped');
+    },
 
-function recordFrame(key, event){
-	//For old browsers
-	var d = new Date();
-	now = d.getTime()
+	recordFrame: function(key) {
+		recordJS.now = Date.now();
+		recordJS.timestamp = Math.round(recordJS.now / 1000); 
+		clearTimeout(recordJS.timeout);
 
-	//now = Date.now();
-	
-	timestamp = Math.round(now / 1000); 
-	clearTimeout(timeout);
+		if (
+			recordJS.recording 
+			//&& (recordJS.now - recordJS.lastFrameTimestampMs) / 1000 > recordJS.minFrameStep
+        ){
+			//Send a KeyFrame
+			if(((recordJS.now - recordJS.lastScreenTimestampMs) / 1000 > recordJS.maxKeyFrameStep) || key !== undefined){
+				html2canvas(document.body, {
+				    onrendered: function(canvas) {
+				        //Draw mouse over canvas
+				  		// var context=canvas.getContext("2d");
+				  		// var img = new Image() //creates a variable for a new image	 
+						// img.src= "pointer.png" // specifies the location of the image
+						// context.drawImage(img, mouse.x, mouse.y); // draws the image at the specified x and y location
 
-	if(
-		recording 
-		//&& (now - lastFrameTimestampMs) / 1000 > minFrameStep
-		){
-		
-		//Send a KeyFrame
-		if( ((now - lastScreenTimestampMs) / 1000 > maxKeyFrameStep) || key !== undefined){
-			html2canvas(document.body, {
-			    onrendered: function(canvas) {
-			        //Draw mouse over canvas
-			  		// var context=canvas.getContext("2d");
-			  		// var img = new Image() //creates a variable for a new image	 
-					// img.src= "pointer.png" // specifies the location of the image
-					// context.drawImage(img, mouse.x, mouse.y); // draws the image at the specified x and y location
+				        var data = canvas.toDataURL("image/png"); 
+				        recordJS.sendFrame(data);
+				    }
+				});
 
-			        var data = canvas.toDataURL("image/png"); 
-			        sendFrame(data);
-			    }
-			});
-
-			lastScreenTimestampMs = now;
-		}else{
-			sendFrame();
-		}	
-	}
-}
-
-function sendFrame(screen){
-	var frame = {};
-
-	if(screen !== undefined){
-		frame.screen = screen;
-		console.log('make key frame')
-	}else{
-		console.log('make frame');
-	}
-
-	frame.location 	= document.location.href;
-	frame.session 	= session;
-	frame.timestamp = timestamp;
-	frame.now		= now;
-	frame.mouseX	= mouse.x;
-	frame.mouseY	= mouse.y;
-	frame.scrollX	= winScroll.left;
-	frame.scrollY 	= winScroll.top;
-	frame.viewportW = viewport.width;
-	frame.viewportH = viewport.height;
-
-	frames.push(frame);
-	localStorage.setItem('recording', JSON.stringify(frames));
-
-	if( frames.length > 20 || sizeof(frames) > mb ){
-		console.log('send frames');
-		//Send data to server		
-		var request = getXHR();
-
-		request.open("POST", server);
-		request.send(JSON.stringify(frames));
-		lastFrameTimestampMs = now;
-		
-		frames = [];
-		localStorage.clear();
-	}
-}
-
-function sendMetaInfo(){
-	var meta = {}
-	var request = getXHR();
-	var data = "";
-	
-	//GET IP Location
-	request.onreadystatechange = function () {
-	if (request.readyState === 4) {
-		if (request.status == 200 && request.status < 300){
-			data = JSON.parse(xhr.responseText);
+				recordJS.lastScreenTimestampMs = now;
+			} else {
+				recordJS.sendFrame();
+			}	
 		}
-	}
+	},
 
-	request.open('GET', 'http://ipinfo.io', false);
-	request.send();
+	sendFrame: function(screen) {
+		var frame = {};
 
-	meta.session 	= session;
-	meta.domain 	= document.domain;
-	meta.country 	= data.country;
+		if(screen !== undefined) {
+			frame.screen = screen;
+			console.log('make key frame');
+		} else {
+			console.log('make frame');
+		}
 
-	request.open("POST", server);
-	request.send(JSON.stringify(meta));
-}
+		frame.location 	= document.location.href;
+		frame.session 	= recordJS.session;
+		frame.timestamp = recordJS.timestamp;
+		frame.now		= recordJS.now;
+		frame.mouseX	= recordJS.mouse.x;
+		frame.mouseY	= recordJS.mouse.y;
+		frame.scrollX	= recordJS.winScroll.left;
+		frame.scrollY 	= recordJS.winScroll.top;
+		frame.viewportW = recordJS.viewport.width;
+		frame.viewportH = recordJS.viewport.height;
 
+		recordJS.frames.push(frame);
+		localStorage.setItem('recording', JSON.stringify(recordJS.frames));
 
-//Utils
-function getRandomInt(min, max){
-	return Math.floor((Math.random() * ((max + 1) - min)) + min);
-}
+		if(recordJS.frames.length > 20 || recordJS.sizeOf(recordJS.frames) > recordJS.mb ){
+			recordJS.log('sending frames to server');
+			//Send data to server
+			
+			if (window.XDomainRequest){
+		        var request = new XDomainRequest();	        
+		    }
+		    else if (window.XMLHttpRequest){
+		        var request = new XMLHttpRequest();
+		    }
+		    else{
+		        var request = new ActiveXObject("Microsoft.XMLHTTP");
+		    }
 
-function getXHR(){
-	if (window.XDomainRequest){
-		return request = new XDomainRequest();	        
-	}
-	else if (window.XMLHttpRequest){
-		return request = new XMLHttpRequest();
-	}
-	else{
-		return request = new ActiveXObject("Microsoft.XMLHTTP");
-	}
-}
+			request.open("POST", recordJS.server);
+			request.send(JSON.stringify(recordJS.frames));
+			recordJS.lastFrameTimestampMs = recordJS.now;
+			
+			recordJS.frames = [];
+			localStorage.clear();
+            recordJS.log('frames sent');
+		}
+	},
 
-function getViewport(){
-	var w = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
-	var h = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
+	//Utils
+	getRandomInt: function(min, max) {
+		return Math.floor((Math.random() * ((max + 1) - min)) + min);
+	},
 
-	// BUG HERE
-	// var hasVScroll = document.body.scrollHeight > document.body.clientHeight;
-	// var hasHScroll = document.body.scrollWidth > document.body.clientHeight;
+	getViewport: function() {
+		var w = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
+		var h = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
 
-	//TODO remove scroll width
+		// BUG HERE
+		// var hasVScroll = document.body.scrollHeight > document.body.clientHeight;
+		// var hasHScroll = document.body.scrollWidth > document.body.clientHeight;
 
-	return {width:w, height:h};
-}
+		//TODO remove scroll width
 
-// http://code.stephenmorley.org/
-function sizeof(object) {
-    // initialise the list of objects and size
-    var objects = [object];
-    var size = 0;
-    // loop over the objects
-    for (var index = 0; index < objects.length; index++) {
-        // determine the type of the object
-        switch (typeof objects[index]) {
-            // the object is a boolean
-            case 'boolean':
-                size += 4;
-                break;
-                // the object is a number
-            case 'number':
-                size += 8;
-                break;
-                // the object is a string
-            case 'string':
-                size += 2 * objects[index].length;
-                break;
-                // the object is a generic object
-            case 'object':
-                // if the object is not an array, add the sizes of the keys
-                if (Object.prototype.toString.call(objects[index]) != '[object Array]') {
-                    for (var key in objects[index]) size += 2 * key.length;
-                }
-                // loop over the keys
-                for (var key in objects[index]) {
-                    // determine whether the value has already been processed
-                    var processed = false;
-                    for (var search = 0; search < objects.length; search++) {
-                        if (objects[search] === objects[index][key]) {
-                            processed = true;
-                            break;
-                        }
-                    }
-                    // queue the value to be processed if appropriate
-                    if (!processed) objects.push(objects[index][key]);
-                }
+		return {width:w, height:h};
+	},
 
-        }
+	// http://code.stephenmorley.org/
+	sizeOf: function(object) {
+	    // initialise the list of objects and size
+	    var objects = [object];
+	    var size = 0;
+	    // loop over the objects
+	    for (var index = 0; index < objects.length; index++) {
+	        // determine the type of the object
+	        switch (typeof objects[index]) {
+	            // the object is a boolean
+	            case 'boolean':
+	                size += 4;
+	                break;
+	                // the object is a number
+	            case 'number':
+	                size += 8;
+	                break;
+	                // the object is a string
+	            case 'string':
+	                size += 2 * objects[index].length;
+	                break;
+	                // the object is a generic object
+	            case 'object':
+	                // if the object is not an array, add the sizes of the keys
+	                if (Object.prototype.toString.call(objects[index]) != '[object Array]') {
+	                    for (var key in objects[index]) size += 2 * key.length;
+	                }
+	                // loop over the keys
+	                for (var key in objects[index]) {
+	                    // determine whether the value has already been processed
+	                    var processed = false;
+	                    for (var search = 0; search < objects.length; search++) {
+	                        if (objects[search] === objects[index][key]) {
+	                            processed = true;
+	                            break;
+	                        }
+	                    }
+	                    // queue the value to be processed if appropriate
+	                    if (!processed) objects.push(objects[index][key]);
+	                }
+
+	        }
+	    }
+
+	    // return the calculated size
+	    return size;
+	},
+
+	getScroll: function () {
+		var doc = document.documentElement;
+		var left = (window.pageXOffset || doc.scrollLeft) - (doc.clientLeft || 0);
+		var top = (window.pageYOffset || doc.scrollTop)  - (doc.clientTop || 0);
+		return {top:top, left:left};
+	},
+
+	getScrollBarWidth: function (){
+	    var outer = document.createElement("div");
+	    outer.style.visibility = "hidden";
+	    outer.style.width = "100px";
+	    outer.style.msOverflowStyle = "scrollbar"; // needed for WinJS apps
+
+	    document.body.appendChild(outer);
+
+	    var widthNoScroll = outer.offsetWidth;
+	    // force scrollbars
+	    outer.style.overflow = "scroll";
+
+	    // add innerdiv
+	    var inner = document.createElement("div");
+	    inner.style.width = "100%";
+	    outer.appendChild(inner);        
+
+	    var widthWithScroll = inner.offsetWidth;
+
+	    // remove divs
+	    outer.parentNode.removeChild(outer);
+
+	    return widthNoScroll - widthWithScroll;
+	},
+
+	//Cookie functions
+	//TODO: Add escape for cookie content
+	setCookie: function(name, value, hours) {
+	    var d = new Date();
+	    d.setTime(d.getTime() + (hours*60*60*1000));
+	    var expires = "expires="+d.toGMTString();
+	    document.cookie = name + "=" + value + "; " + expires + "; path=/";
+	},
+
+	getCookie: function(cname) {
+	    var name = cname + "=";
+	    var ca = document.cookie.split(';');
+	    for(var i=0; i<ca.length; i++) {
+	        var c = ca[i];
+	        while (c.charAt(0)==' ') c = c.substring(1);
+	        if (c.indexOf(name) != -1) return c.substring(name.length, c.length);
+	    }
+	    return "";
+	},
+
+	//HANDLERS
+	mouseMoveHandler: function (e){
+		recordJS.mouse.x = e.clientX || e.pageX; 
+	    recordJS.mouse.y = e.clientY || e.pageY;
+	    recordJS.recordFrame();
+	    //recordJS.log('mouse move');
+	},
+
+	mouseClickHandler: function (e){
+		recordJS.mouse.x = e.clientX || e.pageX; 
+	    recordJS.mouse.y = e.clientY || e.pageY; 
+	    //Send delayed keyframe
+	    clearTimeout(recordJS.timeout);
+	    recordJS.timeout = setTimeout(function(){recordJS.recordFrame(true);}, 100);
+	    recordJS.log('mouse click');
+	},
+
+	keyHandler: function (e){
+	    //Send delayed keyframe
+	    clearTimeout(recordJS.timeout);
+	    recordJS.timeout = setTimeout(function(){recordJS.recordFrame(true);}, 100);
+	},
+
+	resizeHandler: function (e){
+		recordJS.viewport = recordJS.getViewport();
+		//console.log(viewport)
+		//Send delayed keyframe
+		clearTimeout(recordJS.timeout);
+		recordJS.timeout = setTimeout(function(){recordJS.recordFrame(true);}, 100);
+	},
+
+	scrollHandler: function (e){
+		recordJS.winScroll = recordJS.getScroll();
+		//console.log(winScroll)
+		//Send delayed keyframe
+		clearTimeout(recordJS.timeout);
+		recordJS.timeout = setTimeout(function(){recordJS.recordFrame(true);}, 100);
+	},
+
+    //logging
+    log: function(message) {
+        console.log(message);
     }
+};
 
-    // return the calculated size
-    return size;
-}
-
-function getScroll(){
-	var doc = document.documentElement;
-	var left = (window.pageXOffset || doc.scrollLeft) - (doc.clientLeft || 0);
-	var top = (window.pageYOffset || doc.scrollTop)  - (doc.clientTop || 0);
-	return {top:top, left:left};
-}
-
-function getScrollbarWidth(){
-    var outer = document.createElement("div");
-    outer.style.visibility = "hidden";
-    outer.style.width = "100px";
-    outer.style.msOverflowStyle = "scrollbar"; // needed for WinJS apps
-
-    document.body.appendChild(outer);
-
-    var widthNoScroll = outer.offsetWidth;
-    // force scrollbars
-    outer.style.overflow = "scroll";
-
-    // add innerdiv
-    var inner = document.createElement("div");
-    inner.style.width = "100%";
-    outer.appendChild(inner);        
-
-    var widthWithScroll = inner.offsetWidth;
-
-    // remove divs
-    outer.parentNode.removeChild(outer);
-
-    return widthNoScroll - widthWithScroll;
-}
-
-//Cookie functions
-function setCookie(name, value, hours) {
-    var d = new Date();
-    d.setTime(d.getTime() + (hours*60*60*1000));
-    var expires = "expires="+d.toGMTString();
-    document.cookie = name + "=" + value + "; " + expires + "; path=/";
-}
-
-function getCookie(cname) {
-    var name = cname + "=";
-    var ca = document.cookie.split(';');
-    for(var i=0; i<ca.length; i++) {
-        var c = ca[i];
-        while (c.charAt(0)==' ') c = c.substring(1);
-        if (c.indexOf(name) != -1) return c.substring(name.length, c.length);
-    }
-    return "";
-}
-
-//HANDLERS
-function mouseMoveHandler(e){
-	mouse.x = e.clientX || e.pageX; 
-    mouse.y = e.clientY || e.pageY;
-    recordFrame(); 
-    //console.log('mouse move');
-}
-
-function mouseClickHandler(e){
-	mouse.x = e.clientX || e.pageX; 
-    mouse.y = e.clientY || e.pageY; 
-    //Send delayed keyframe
-    clearTimeout(timeout);
-    timeout = setTimeout(function(){recordFrame(true);}, 100);
-    console.log('mouse click');
-}
-
-function keyHandler(e){
-    //Send delayed keyframe
-    clearTimeout(timeout);
-    timeout = setTimeout(function(){recordFrame(true);}, 100);
-}
-
-function resizeHandler(e){
-	viewport = getViewport();
-	//console.log(viewport)
-	//Send delayed keyframe
-	clearTimeout(timeout);
-	timeout = setTimeout(function(){recordFrame(true);}, 100);
-}
-
-function scrollHandler(e){
-	winScroll = getScroll();
-	//console.log(winScroll)
-	//Send delayed keyframe
-	clearTimeout(timeout);
-	timeout = setTimeout(function(){recordFrame(true);}, 100);
-}
-
-window.addEventListener('mousemove', mouseMoveHandler, false);
-window.addEventListener('click', mouseClickHandler, false);
-window.addEventListener('keyup', keyHandler, false);
+window.addEventListener('mousemove', recordJS.mouseMoveHandler, false);
+window.addEventListener('click', recordJS.mouseClickHandler, false);
+window.addEventListener('keyup', recordJS.keyHandler, false);
 
 //window stuff
-window.addEventListener('resize', resizeHandler, false);
-window.addEventListener('scroll', scrollHandler, false);
+window.addEventListener('resize', recordJS.resizeHandler, false);
+window.addEventListener('scroll', recordJS.scrollHandler, false);
 
 //TODO: mobile events
