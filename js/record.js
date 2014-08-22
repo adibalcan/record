@@ -135,7 +135,7 @@ var recordJS = {
 			
 			var request = recordJS.getXHR();
 
-			request.open("POST", recordJS.server);
+			request.open("POST", recordJS.server, true);
 			request.send(JSON.stringify(recordJS.frames));
 			recordJS.lastFrameTimestampMs = recordJS.now;
 			
@@ -151,16 +151,17 @@ var recordJS = {
 		var data = "";
 		
 		//GET IP Location
-		request.onreadystatechange = function () {
-			if (request.readyState === 4) {
-				if (request.status >= 200 && request.status < 300){
-					data = JSON.parse(request.responseText);
-				}
-			}
-		}
+		// request.onreadystatechange = function () {
+		// 	if (request.readyState === 4) {
+		// 		if (request.status >= 200 && request.status < 300){
+		// 			data = JSON.parse(request.responseText);
+		// 		}
+		// 	}
+		// }
 
 		request.open('GET', 'http://ipinfo.io/json', false);
 		request.send();
+		data = JSON.parse(request.responseText);
 
 		meta.info 		= 'meta'; 
 		meta.session 	= recordJS.session;
@@ -171,9 +172,11 @@ var recordJS = {
 		//Dirty hack
 		var wraper = [];
 		wraper.push(meta);
+		request = recordJS.getXHR();
 
-		request.open("POST", recordJS.server);
+		request.open("POST", recordJS.server, true);
 		request.send(JSON.stringify(wraper));
+		recordJS.log('send meta info')
 	},
 
 	//Utils
