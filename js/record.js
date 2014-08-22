@@ -153,7 +153,7 @@ var recordJS = {
 		//GET IP Location
 		request.onreadystatechange = function () {
 			if (request.readyState === 4) {
-				if (request.status == 200 && request.status < 300){
+				if (request.status >= 200 && request.status < 300){
 					data = JSON.parse(request.responseText);
 				}
 			}
