@@ -28,6 +28,11 @@ var recordJS = {
 	mb: 1024 * 1024,
 
 	startRecording: function(options) {
+		//Set Options
+		recordJS.server = options.server;
+		recordJS.maxKeyFrameStep = options.maxKeyFrameStep || recordJS.defaultOptions.maxKeyFrameStep; //Seconds
+		recordJS.minFrameStep = options.minFrameStep || recordJS.defaultOptions.minFrameStep; //Seconds
+
 		//SET A NEW SESSION OR RESTORE AN OLD ONE
 		if(recordJS.getCookie('record_session') === "") {
 			recordJS.session = recordJS.getRandomInt(100000,999999);
@@ -50,11 +55,6 @@ var recordJS = {
 				}
 			}
 		}
-
-		//options
-		recordJS.server = options.server;
-		recordJS.maxKeyFrameStep = options.maxKeyFrameStep || recordJS.defaultOptions.maxKeyFrameStep; //Seconds
-		recordJS.minFrameStep = options.minFrameStep || recordJS.defaultOptions.minFrameStep; //Seconds
 
 		recordJS.viewport = recordJS.getViewport();
 

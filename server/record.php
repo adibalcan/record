@@ -1,6 +1,7 @@
 <?php
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST');
+header('Access-Control-Allow-Headers: x-requested-with');
 $dataDir = 'record';
 
 
@@ -26,27 +27,27 @@ if($_SERVER['REQUEST_METHOD'] == 'POST'){
 			$data->meta 			= new stdClass;
 			$data->meta->domain 	= $jsonData[0]->domain;
 			$data->meta->country 	= strtolower($jsonData[0]->country);
-			$data->mete->timestamp  = time(); 
+			$data->meta->timestamp  = time(); 
 		}
-	}
+	}else{
+		//Parse frames
+		foreach ($jsonData as $key => $frame) {
+			//If is keyFrame
+			if(isset($frame->screen)){
+				$imageData = $frame->screen;
+				$name = $frame->session . '_' . $frame->now;
 
-	//Parse frames
-	foreach ($jsonData as $key => $frame) {
-		//If is keyFrame
-		if(isset($frame->screen)){
-			$imageData = $frame->screen;
-			$name = $frame->session . '_' . $frame->now;
+				$filteredData = substr($imageData, strpos($imageData, ",") + 1);
+				$unencodedData = base64_decode($filteredData);    
 
-			$filteredData = substr($imageData, strpos($imageData, ",") + 1);
-			$unencodedData = base64_decode($filteredData);    
+				$imageFile = $dataDir . DIRECTORY_SEPARATOR . $name . '.png';
+				$frame->screen = $imageFile;
 
-			$imageFile = $dataDir . DIRECTORY_SEPARATOR . $name . '.png';
-			$frame->screen = $imageFile;
+				file_put_contents($imageFile, $unencodedData);
+			}
 
-			file_put_contents($imageFile, $unencodedData);
+			$data->frames[] = $frame;
 		}
-
-		$data->frames[] = $frame;
 	}
 
 	//Save
