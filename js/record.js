@@ -129,12 +129,12 @@ var recordJS = {
 		recordJS.frames.push(frame);
 		localStorage.setItem('recording', JSON.stringify(recordJS.frames));
 
+		// we send the record if it has more than 20 frames or it is bigger than 1 mb
 		if(recordJS.frames.length > 20 || recordJS.sizeOf(recordJS.frames) > recordJS.mb ){
 			recordJS.log('sending frames to server');
-			//Send data to server
 			
+			//Send data to server		
 			var request = recordJS.getXHR();
-
 			request.open("POST", recordJS.server, true);
 			request.send(JSON.stringify(recordJS.frames));
 			recordJS.lastFrameTimestampMs = recordJS.now;
@@ -313,7 +313,7 @@ var recordJS = {
 		return "";
 	},
 
-	//HANDLERS
+	//event handlers
 	mouseMoveHandler: function (e){
 		recordJS.mouse.x = e.clientX || e.pageX; 
 		recordJS.mouse.y = e.clientY || e.pageY;
@@ -362,8 +362,8 @@ window.addEventListener('mousemove', recordJS.mouseMoveHandler, false);
 window.addEventListener('click', recordJS.mouseClickHandler, false);
 window.addEventListener('keyup', recordJS.keyHandler, false);
 
-//window stuff
+//window events
 window.addEventListener('resize', recordJS.resizeHandler, false);
 window.addEventListener('scroll', recordJS.scrollHandler, false);
 
-//TODO: mobile events
+//TODO: add mobile events
